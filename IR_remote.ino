@@ -4,8 +4,15 @@
 #include <ESPmDNS.h>  
 
 // This code sends a http request to a local LED device (given its hostname, needs to be setup with WLED) to change its color using a normal TV remote.
+// Visit this to show how the API request is constructed : https://kno.wled.ge/interfaces/http-api/
 
 
+// IR Remote Codes
+#define BUTTON_RED 0x936C0707
+#define BUTTON_GREEN 0xEB140707
+#define BUTTON_YELLOW 0xEA150707
+#define BUTTON_BLUE 0xE9160707
+#define OFF 0x19E60707
 
 #define IR_RECEIVE_PIN 4  // IR receiver pin
 
@@ -22,12 +29,7 @@ const bool USE_IP = true;  // Set to `true` to use IP, `false` to use hostname
 // Construct the correct URL dynamically
 String WLED_URL = USE_IP ? "http://" + String(WLED_IP) + "/win&" : "http://" + String(WLED_HOSTNAME) + "/win&";
 
-// IR Remote Codes
-#define BUTTON_RED 0x936C0707
-#define BUTTON_GREEN 0xEB140707
-#define BUTTON_YELLOW 0xEA150707
-#define BUTTON_BLUE 0xE9160707
-#define OFF 0x19E60707
+
 
 void setup() {
   Serial.begin(115200);
@@ -70,32 +72,44 @@ void loop() {
     Serial.print("Received Code: ");
     Serial.println(receivedCode, HEX); // Print the received code in hexadecimal format
 
-    if (receivedCode == OFF) {
-      Serial.println("OFF Button Pressed!");
-      sendWLEDRequest("T=2"); // Toggle
-    }
-    else if (receivedCode == BUTTON_RED) {
-      Serial.println("Red Button Pressed!");
-      sendWLEDRequest("CL=FF0000");  // Change WLED color to RED
-    }
-    else if (receivedCode == BUTTON_GREEN) {
-      Serial.println("Green Button Pressed!");
-      sendWLEDRequest("CL=00FF00");  // Change WLED color to GREEN
-    }
-    else if (receivedCode == BUTTON_YELLOW) {
-      Serial.println("Yellow Button Pressed!");
-      sendWLEDRequest("CL=FFFF00");  // Change WLED color to YELLOW
-    }
-    else if (receivedCode == BUTTON_BLUE) {
-      Serial.println("Blue Button Pressed!");
-      sendWLEDRequest("CL=0000FF");  // Change WLED color to BLUE
-    }
-    else {
-      Serial.println("Unknown Button Pressed");
+    switch (receivedCode) {
+      case OFF:
+        Serial.println("OFF Button Pressed!");
+        sendWLEDRequest("T=2"); // Toggle
+        break;
+
+      case BUTTON_RED:
+        Serial.println("Red Button Pressed!");
+        sendWLEDRequest("T=2"); // Toggle  
+        // sendWLEDRequest("CL=FF0000");  // Change WLED color to RED
+        break;
+
+      case BUTTON_GREEN:
+        Serial.println("Green Button Pressed!");
+        sendWLEDRequest("&PS=14"); 
+        // sendWLEDRequest("CL=00FF00");  // Change WLED color to GREEN
+        break;
+
+      case BUTTON_YELLOW:
+        Serial.println("Yellow Button Pressed!");
+        sendWLEDRequest("&PS=15"); 
+        // sendWLEDRequest("CL=FFFF00");  // Change WLED color to YELLOW
+        break;
+
+      case BUTTON_BLUE:
+        Serial.println("Blue Button Pressed!");
+        sendWLEDRequest("&PS=16"); 
+        // sendWLEDRequest("CL=0000FF");
+        break;
+
+      default:
+        Serial.println("Unknown Button Pressed");
+        break;
     }
 
-    IrReceiver.resume(); // Ready to receive the next IR signal
+      IrReceiver.resume(); // Ready to receive the next IR signal
   }
+  delay(200);
 }
 
 // Function to send HTTP requests to WLED
@@ -120,17 +134,17 @@ void sendWLEDRequest(String command) {
     Serial.print("❌ Error sending HTTP Request. Code: ");
     Serial.println(httpCode);
 
-    if (tries < maxRetries) {
-      Serial.print("Retrying in ");
-      Serial.print(retryDelay / 1000);
-      Serial.println(" seconds...");
-      delay(retryDelay);  // Wait before retrying
-      tries++;  // Increment retry counter
-      sendWLEDRequest(command);  // Retry the request
-    } else {
-      Serial.println("❌ Max retries reached. Aborting request.");
-      tries = 0;  // Reset retry counter
-    }
+    // if (tries < maxRetries) {
+    //   Serial.print("Retrying in ");
+    //   Serial.print(retryDelay / 1000);
+    //   Serial.println(" seconds...");
+    //   delay(retryDelay);  // Wait before retrying
+    //   tries++;  // Increment retry counter
+    //   sendWLEDRequest(command);  // Retry the request
+    // } else {
+    //   Serial.println("❌ Max retries reached. Aborting request.");
+    //   tries = 0;  // Reset retry counter
+    // }
   }
 
   http.end();  // End HTTP request
